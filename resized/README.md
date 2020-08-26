@@ -1,1 +1,1 @@
-Here will be images after resize(default path)
+    Here will be images after resize(default path)

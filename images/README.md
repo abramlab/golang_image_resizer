@@ -1,1 +1,1 @@
-Drop here images(jpg,png,gif) you need to resize
+    Drop here images(jpg,png,gif) you need to resize
