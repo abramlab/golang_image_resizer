@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/nfnt/resize"
 	"github.com/pkg/errors"
-	"gocv.io/x/gocv"
 	"image"
 	"image/gif"
 	"image/jpeg"
@@ -20,28 +19,28 @@ import (
 )
 
 var (
-	inPath = flag.String("img_path", "images", "")
-	outPath = flag.String("out_path", "resized", "")
+	inPath  = flag.String("in_path", "images", "Path to folder where images you need to resize.")
+	outPath = flag.String("out_path", "resized", "Path to folder with resized images.")
 
-	width = flag.Uint("width", 240, "Width of resized image")
-	height = flag.Uint("height", 240, "Height of resized image")
+	width  = flag.Uint("width", 240, "Width of resized images in px.")
+	height = flag.Uint("height", 240, "Height of resized images in px.")
 
-	gCount = flag.Int("g", runtime.NumCPU(), "Number of working goroutines")
+	gNum = flag.Int("gNum", runtime.NumCPU(), "Number of resized workers. Default is number of logical CPUs.")
 )
 
 type Resizer struct {
-	width, height uint
+	width, height   uint
 	inPath, outPath string
-	ch chan Img
-	wg *sync.WaitGroup
-	count int
+	ch              chan Img
+	wg              *sync.WaitGroup
+	count           int
 }
 
 func main() {
 	flag.Parse()
 
 	//Error if number of goroutines is <= 0
-	if *gCount <= 0 {
+	if *gNum <= 0 {
 		log.Fatalln("number of goroutines should be > 0")
 	}
 
@@ -62,7 +61,7 @@ func main() {
 	}()
 
 	//Start resize workers
-	for i := 0; i < *gCount; i++ {
+	for i := 0; i < *gNum; i++ {
 		r.wg.Add(1)
 		go r.resizeWorker()
 	}
@@ -73,17 +72,19 @@ func main() {
 
 func NewResizer(w, h uint, in, out string) *Resizer {
 	return &Resizer{
-		width: 		w,
-		height:     h,
-		inPath: 	in,
-		outPath:	out,
-		ch: 		make(chan Img),
-		wg: 		&sync.WaitGroup{},
-		count: 		0,
+		width:   w,
+		height:  h,
+		inPath:  in,
+		outPath: out,
+		ch:      make(chan Img),
+		wg:      &sync.WaitGroup{},
+		count:   0,
 	}
 }
 
 func (r *Resizer) scanDir() error {
+	defer close(r.ch)
+
 	dirItems, err := ioutil.ReadDir(r.inPath)
 	if err != nil {
 		return errors.Wrap(err, "read dir error")
@@ -97,14 +98,14 @@ func (r *Resizer) scanDir() error {
 				fmt.Printf("skipping file: %v\n", err)
 				continue
 			}
-			r.ch <- Img{img, name,format}
+			r.ch <- Img{img, name, format}
 		}
 	}
-	close(r.ch)
 	return nil
 }
 
 func (r *Resizer) resizeWorker() {
+	defer r.wg.Done()
 	for img := range r.ch {
 		img.resize(r.width, r.height)
 		resizedPath := fmt.Sprintf("%s/%s_%vx%v%s", r.outPath, img.name, r.width, r.height, img.ext())
@@ -114,13 +115,12 @@ func (r *Resizer) resizeWorker() {
 		}
 		r.count++
 	}
-	r.wg.Done()
 }
 
 type Img struct {
-	image 	image.Image
-	name 	string
-	format 	string
+	image  image.Image
+	name   string
+	format string
 }
 
 func (i *Img) resize(width, height uint) {
@@ -146,15 +146,15 @@ func (i Img) saveTo(path string) error {
 	}
 }
 
-func (i Img) ext() gocv.FileExt {
-	var ext gocv.FileExt
+func (i Img) ext() string {
+	var ext string
 	switch i.format {
 	case "jpeg":
-		ext = gocv.JPEGFileExt
+		ext = ".jpg"
 	case "png":
-		ext = gocv.PNGFileExt
+		ext = ".png"
 	case "gif":
-		ext = gocv.GIFFileExt
+		ext = ".gif"
 	}
 	return ext
 }
@@ -164,6 +164,8 @@ func decodeImage(path string) (image.Image, string, string, error) {
 	if err != nil {
 		return nil, "", "", fmt.Errorf("cant open file %s: %s", path, err)
 	}
+	defer file.Close()
+
 	bFilename := filepath.Base(file.Name())
 	fileName := strings.TrimSuffix(bFilename, filepath.Ext(bFilename))
 
@@ -171,6 +173,6 @@ func decodeImage(path string) (image.Image, string, string, error) {
 	if err != nil {
 		return nil, "", "", fmt.Errorf("cant decode file %s: %s", path, err)
 	}
-	file.Close()
+
 	return img, fileName, format, nil
 }
