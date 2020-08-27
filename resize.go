@@ -25,12 +25,14 @@ var (
 	width  = flag.Uint("width", 240, "Width of resized images in px.")
 	height = flag.Uint("height", 240, "Height of resized images in px.")
 
-	gNum = flag.Int("gNum", runtime.NumCPU(), "Number of resized workers. Default is number of logical CPUs.")
+	postfix = flag.Bool("postfix", false, "Postfix of width and height in resized image. Example: img_name_300x300.")
+	gNum    = flag.Int("gNum", runtime.NumCPU(), "Number of resized workers. Default is number of logical CPUs.")
 )
 
 type Resizer struct {
 	width, height   uint
 	inPath, outPath string
+	postfix         bool
 	ch              chan Img
 	wg              *sync.WaitGroup
 	count           int
@@ -45,7 +47,7 @@ func main() {
 	}
 
 	//Create new resizer with all params
-	r := NewResizer(*width, *height, *inPath, *outPath)
+	r := NewResizer(*width, *height, *inPath, *outPath, *postfix)
 
 	//If out dir doesn't exist, create it
 	resizedPath := *outPath
@@ -70,12 +72,13 @@ func main() {
 	fmt.Printf("Success resized images: %v\n", r.count)
 }
 
-func NewResizer(w, h uint, in, out string) *Resizer {
+func NewResizer(w, h uint, in, out string, postfix bool) *Resizer {
 	return &Resizer{
 		width:   w,
 		height:  h,
 		inPath:  in,
 		outPath: out,
+		postfix: postfix,
 		ch:      make(chan Img),
 		wg:      &sync.WaitGroup{},
 		count:   0,
@@ -108,13 +111,24 @@ func (r *Resizer) resizeWorker() {
 	defer r.wg.Done()
 	for img := range r.ch {
 		img.resize(r.width, r.height)
-		resizedPath := fmt.Sprintf("%s/%s_%vx%v%s", r.outPath, img.name, r.width, r.height, img.ext())
+		resizedPath := r.fullOutPath(img)
 		if err := img.saveTo(resizedPath); err != nil {
 			fmt.Printf("saving resized file error: %v\n", err)
 			continue
 		}
 		r.count++
 	}
+}
+
+func (r *Resizer) fullOutPath(img Img) string {
+	var path string
+	if r.postfix {
+		w, h := img.dimensions()
+		path = fmt.Sprintf("%s/%s_%vx%v%s", r.outPath, img.name, w, h, img.ext())
+	} else {
+		path = fmt.Sprintf("%s/%s%s", r.outPath, img.name, img.ext())
+	}
+	return path
 }
 
 type Img struct {
@@ -125,6 +139,11 @@ type Img struct {
 
 func (i *Img) resize(width, height uint) {
 	i.image = resize.Resize(width, height, i.image, resize.Lanczos3)
+}
+
+func (i *Img) dimensions() (width int, height int) {
+	b := i.image.Bounds()
+	return b.Max.X, b.Max.Y
 }
 
 func (i Img) saveTo(path string) error {
