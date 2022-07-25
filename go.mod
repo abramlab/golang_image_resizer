@@ -1,4 +1,4 @@
-module resizer
+module github.com/abramlab/resizer
 
 go 1.18
 
