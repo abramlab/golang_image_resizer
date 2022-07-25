@@ -2,64 +2,80 @@ package resizer
 
 import (
 	"fmt"
-	"github.com/nfnt/resize"
 	"image"
-	"os"
-	"path/filepath"
-	"strings"
+	"image/gif"
+	"image/jpeg"
+	"image/png"
+	"io"
+
+	"github.com/nfnt/resize"
 )
 
-type Image struct {
-	image.Image
-	name   string
-	format string
+type Image interface {
+	Encode(w io.Writer) error
+	Resize(width, height uint)
+	Filename() string
 }
 
-func (i *Image) resize(width, height uint) {
+type JPEGImage struct {
+	*Img
+}
+
+func (i *JPEGImage) Encode(w io.Writer) error {
+	return jpeg.Encode(w, i.Image, nil)
+}
+
+func (i *JPEGImage) Resize(width, height uint) {
+	i.resize(width, height)
+}
+
+func (i JPEGImage) Filename() string {
+	return fmt.Sprintf("%s.jpg", i.filename)
+}
+
+type PNGImage struct {
+	*Img
+}
+
+func (i *PNGImage) Encode(w io.Writer) error {
+	return png.Encode(w, i.Image)
+}
+
+func (i *PNGImage) Resize(width, height uint) {
+	i.resize(width, height)
+}
+
+func (i PNGImage) Filename() string {
+	return fmt.Sprintf("%s.png", i.filename)
+}
+
+type GIFImage struct {
+	*Img
+}
+
+func (i *GIFImage) Encode(w io.Writer) error {
+	return gif.Encode(w, i.Image, nil)
+}
+
+func (i *GIFImage) Resize(width, height uint) {
+	i.resize(width, height)
+}
+
+func (i GIFImage) Filename() string {
+	return fmt.Sprintf("%s.gif", i.filename)
+}
+
+type Img struct {
+	image.Image
+	filename string
+}
+
+func (i *Img) resize(width, height uint) {
 	i.Image = resize.Resize(width, height, i.Image, resize.Lanczos3)
 }
 
-func (i Image) dimensions() (width int, height int) {
+// TODO: for future use
+/*func (i Img) dimensions() (width int, height int) {
 	bounds := i.Bounds()
 	return bounds.Max.X, bounds.Max.Y
-}
-
-func (i Image) outFilename(addPostfix bool) string {
-	if addPostfix {
-		w, h := i.dimensions()
-		return fmt.Sprintf("%s_%dx%d%s", i.name, w, h, i.ext())
-	}
-	return fmt.Sprintf("%s%s", i.name, i.ext())
-}
-
-func (i Image) ext() string {
-	var ext string
-	switch i.format {
-	case "jpeg":
-		ext = ".jpg"
-	case "png":
-		ext = ".png"
-	case "gif":
-		ext = ".gif"
-	}
-	return ext
-}
-
-func decodeImage(path string) (*Image, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("open file %s: %s", path, err)
-	}
-	defer file.Close()
-
-	base, ext := filepath.Base(file.Name()), filepath.Ext(file.Name())
-	decodedImage, format, err := image.Decode(file)
-	if err != nil {
-		return nil, fmt.Errorf("decode file %s: %s", path, err)
-	}
-	return &Image{
-		Image:  decodedImage,
-		name:   strings.TrimSuffix(base, ext),
-		format: format,
-	}, nil
-}
+}*/
