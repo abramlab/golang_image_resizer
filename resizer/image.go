@@ -7,6 +7,7 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
+	"path/filepath"
 
 	"github.com/nfnt/resize"
 )
@@ -30,7 +31,10 @@ func (i *JPEGImage) Resize(width, height uint) {
 }
 
 func (i JPEGImage) Filename() string {
-	return fmt.Sprintf("%s.jpg", i.filename)
+	if filepath.Ext(i.filename) == "" {
+		return fmt.Sprintf("%s.jpg", i.filename)
+	}
+	return i.filename
 }
 
 type PNGImage struct {
@@ -46,7 +50,10 @@ func (i *PNGImage) Resize(width, height uint) {
 }
 
 func (i PNGImage) Filename() string {
-	return fmt.Sprintf("%s.png", i.filename)
+	if filepath.Ext(i.filename) == "" {
+		return fmt.Sprintf("%s.png", i.filename)
+	}
+	return i.filename
 }
 
 type GIFImage struct {
@@ -62,7 +69,10 @@ func (i *GIFImage) Resize(width, height uint) {
 }
 
 func (i GIFImage) Filename() string {
-	return fmt.Sprintf("%s.gif", i.filename)
+	if filepath.Ext(i.filename) == "" {
+		return fmt.Sprintf("%s.gif", i.filename)
+	}
+	return i.filename
 }
 
 type Img struct {
@@ -73,9 +83,3 @@ type Img struct {
 func (i *Img) resize(width, height uint) {
 	i.Image = resize.Resize(width, height, i.Image, resize.Lanczos3)
 }
-
-// TODO: for future use
-/*func (i Img) dimensions() (width int, height int) {
-	bounds := i.Bounds()
-	return bounds.Max.X, bounds.Max.Y
-}*/

@@ -5,6 +5,7 @@ import (
 	"image"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 var imageFormatToConstructor = map[string]func(i *Img) Image{
@@ -20,7 +21,7 @@ func DecodeImageFile(path string) (Image, error) {
 	}
 	defer file.Close()
 
-	return DecodeImage(file, file.Name())
+	return DecodeImage(file, filepath.Base(file.Name()))
 }
 
 func DecodeImage(reader io.Reader, filename string) (Image, error) {

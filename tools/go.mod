@@ -3,7 +3,6 @@ module github.com/abramlab/resizer/tools
 go 1.18
 
 require (
-	github.com/alvaroloes/enumer v1.1.2
 	github.com/golangci/golangci-lint v1.47.2
 	mvdan.cc/gofumpt v0.3.1
 )
@@ -104,7 +103,6 @@ require (
 	github.com/nishanths/exhaustive v0.8.1 // indirect
 	github.com/nishanths/predeclared v0.2.2 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
-	github.com/pascaldekloe/name v0.0.0-20180628100202-0fd16699aae1 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.2 // indirect
 	github.com/phayes/checkstyle v0.0.0-20170904204023-bfd46e6a821d // indirect

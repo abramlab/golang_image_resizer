@@ -7,3 +7,9 @@ func WithResolution(width, height uint) Option {
 		r.width, r.height = width, height
 	}
 }
+
+func WithWorkersNum(workers int) Option {
+	return func(r *Resizer) {
+		r.workersNum = workers
+	}
+}

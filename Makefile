@@ -5,7 +5,6 @@ SHELL = /bin/bash
 
 OS ?= linux
 GO   ?= go
-RESIZER_APP_DIR ?= resizer
 TOOLS_BIN_DIR ?= tools/bin
 CACHE_DIR ?= cache
 
@@ -24,11 +23,11 @@ clean-cache:
 ##### BUILD AND RUN TARGETS #####
 
 GO_BUILD_FLAGS ?= -trimpath
-GO_BIN_RESIZER = bin/$(RESIZER_APP_DIR)
+GO_BIN_RESIZER = bin/resizer
 
 .PHONY: build
 build:
-	$(GO) build $(GO_BUILD_FLAGS) -o "$(GO_BIN_RESIZER)" "./$(RESIZER_APP_DIR)/$*"
+	$(GO) build $(GO_BUILD_FLAGS) -o "$(GO_BIN_RESIZER)" "./cmd/$*"
 
 .PHONY: run
 run: build
@@ -47,11 +46,6 @@ define install-go-tool =
 endef
 
 ## COMMON TOOLS
-
-ENUMER_TOOL = $(TOOLS_BIN_DIR)/enumer
-COMMON_TOOLS += $(ENUMER_TOOL)
-$(ENUMER_TOOL): | $(TOOLS_BIN_DIR)
-	$(install-go-tool) github.com/alvaroloes/enumer
 
 GO_LINT_TOOL = $(TOOLS_BIN_DIR)/golangci-lint
 COMMON_TOOLS += $(GO_LINT_TOOL)
