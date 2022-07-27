@@ -5,7 +5,7 @@ import (
 	"image"
 	"io"
 	"os"
-	"path/filepath"
+	"strings"
 )
 
 var imageFormatToConstructor = map[string]func(i *Img) Image{
@@ -14,14 +14,14 @@ var imageFormatToConstructor = map[string]func(i *Img) Image{
 	"gif":  func(i *Img) Image { return &GIFImage{Img: i} },
 }
 
-func DecodeImageFile(path string) (Image, error) {
+func decodeImageFile(path string, rootPath string) (Image, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("open file %s: %s", path, err)
 	}
 	defer file.Close()
 
-	return DecodeImage(file, filepath.Base(file.Name()))
+	return DecodeImage(file, strings.TrimPrefix(path, rootPath))
 }
 
 func DecodeImage(reader io.Reader, filename string) (Image, error) {

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -30,9 +29,6 @@ func NewResizer(input, output string, opts ...Option) (*Resizer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("output absolute path: %w", err)
 	}
-	if err = os.MkdirAll(absOutput, 0o755); err != nil {
-		return nil, fmt.Errorf("creating output directory %q: %w", absOutput, err)
-	}
 	r := &Resizer{
 		input:      input,
 		output:     absOutput,
@@ -49,7 +45,7 @@ type RunStat struct {
 }
 
 func (r *Resizer) Run(ctx context.Context) (*RunStat, error) {
-	imagesCh, err := scanDir(r.input)
+	imagesCh, err := scanInputDir(r.input)
 	if err != nil {
 		return nil, fmt.Errorf("scanning dir: %w", err)
 	}
@@ -88,10 +84,17 @@ func (r *Resizer) RunResizeWorker(ctx context.Context, in <-chan Image) {
 }
 
 func (r *Resizer) ResizeImageFile(path string) error {
-	img, err := DecodeImageFile(path)
+	file, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("open file %s: %s", path, err)
+	}
+	defer file.Close()
+
+	img, err := DecodeImage(file, filepath.Base(file.Name()))
 	if err != nil {
 		return err
 	}
+
 	img.Resize(r.width, r.height)
 	return saveImage(filepath.Join(r.output, img.Filename()), img)
 }
@@ -106,39 +109,54 @@ func (r *Resizer) ResizeImage(reader io.Reader, filename string) error {
 }
 
 func saveImage(path string, img Image) error {
+	if err := createDirForFile(path, 0o755); err != nil {
+		return fmt.Errorf("creating directory for file %q: %w", path, err)
+	}
 	out, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("create %q: %w", path, err)
+		return fmt.Errorf("create file %q: %w", path, err)
 	}
 	defer out.Close()
 
 	return img.Encode(out)
 }
 
-func scanDir(path string) (<-chan Image, error) {
+func scanInputDir(dir string) (<-chan Image, error) {
 	imagesCh := make(chan Image)
-
-	// TODO: recursive search by filepath.Walk
-	files, err := ioutil.ReadDir(path)
-	if err != nil {
-		return nil, fmt.Errorf("reading dir %q: %w", path, err)
-	}
 
 	go func() {
 		defer close(imagesCh)
 
-		for _, file := range files {
-			if file.IsDir() {
-				continue
-			}
-			imagePath := filepath.Join(path, file.Name())
-			image, err := DecodeImageFile(imagePath)
+		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
-				fmt.Printf("skipping file: %q: %v\n", imagePath, err)
-				continue
+				fmt.Printf("reading file: %v\n", err)
+				return nil
+			}
+			if info.IsDir() {
+				return nil
+			}
+			image, err := decodeImageFile(path, dir+string(filepath.Separator))
+			if err != nil {
+				fmt.Printf("skipping file: %q: %v\n", path, err)
+				return nil
 			}
 			imagesCh <- image
+			return nil
+		})
+		if err != nil {
+			fmt.Printf("walking directory %q: %v", dir, err)
 		}
 	}()
 	return imagesCh, nil
+}
+
+func createDirForFile(path string, dirPerm os.FileMode) error {
+	if base := filepath.Base(path); base == "." || base == "/" {
+		return errors.New("path doesn't point to file")
+	}
+	dir := filepath.Dir(path)
+	if dir == "." {
+		return nil
+	}
+	return os.MkdirAll(dir, dirPerm)
 }

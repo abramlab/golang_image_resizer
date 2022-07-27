@@ -13,6 +13,7 @@ import (
 )
 
 type Image interface {
+	BaseImage() image.Image
 	Encode(w io.Writer) error
 	Resize(width, height uint)
 	Filename() string
@@ -20,6 +21,10 @@ type Image interface {
 
 type JPEGImage struct {
 	*Img
+}
+
+func (i *JPEGImage) BaseImage() image.Image {
+	return i.Image
 }
 
 func (i *JPEGImage) Encode(w io.Writer) error {
@@ -41,6 +46,10 @@ type PNGImage struct {
 	*Img
 }
 
+func (i *PNGImage) BaseImage() image.Image {
+	return i.Image
+}
+
 func (i *PNGImage) Encode(w io.Writer) error {
 	return png.Encode(w, i.Image)
 }
@@ -58,6 +67,10 @@ func (i PNGImage) Filename() string {
 
 type GIFImage struct {
 	*Img
+}
+
+func (i *GIFImage) BaseImage() image.Image {
+	return i.Image
 }
 
 func (i *GIFImage) Encode(w io.Writer) error {

@@ -17,7 +17,6 @@ import (
 // TODO: add tests
 // TODO: delete resize pkg
 // TODO: add logger
-// TODO: add makefile
 // TODO: add docker
 // TODO: add deb pkg
 // TODO: rename project (image resizer)
