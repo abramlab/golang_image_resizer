@@ -33,11 +33,11 @@ First, if don`t have Go, install it - [instruction](https://golang.org/doc/insta
     
 The following flags are supported:
 
-| Flag | Default | Description |
-| --- | --- | --- |
-| `width` | 240 | Width of resized images in px |
-| `height` | 240 | Height of resized images in px |
-| `in_path` | images | Path to folder where images you need to resize |
-| `out_path` | resized | Path to folder with resized images |
-| `postfix` | false | Postfix of width and height in resized image. Example: img_name_300x300 |
-| `gNum` | Number of logical CPUs | Number of resized workers |
+| Flag          | Default                | Description |
+|---------------|------------------------| --- |
+| `width`       | 240 px                 | Width of resized images in px |
+| `height`      | 240 px                 | Height of resized images in px |
+| `in_path`     | images                 | Path to folder where images you need to resize |
+| `out_path`    | resized                | Path to folder with resized images |
+| `postfix`     | false                  | Postfix of width and height in resized image. Example: img_name_300x300 |
+| `workers_num` | Number of logical CPUs | Number of resized workers |
