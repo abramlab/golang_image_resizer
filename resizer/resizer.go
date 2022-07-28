@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -17,6 +18,7 @@ type Resizer struct {
 	input, output string
 	width, height uint
 	workersNum    int
+	log           *log.Logger
 
 	resizedImages uint32
 }
@@ -33,6 +35,7 @@ func NewResizer(input, output string, opts ...Option) (*Resizer, error) {
 		input:      input,
 		output:     absOutput,
 		workersNum: runtime.NumCPU(),
+		log:        newLogger(),
 	}
 	for _, opt := range opts {
 		opt(r)
@@ -40,12 +43,12 @@ func NewResizer(input, output string, opts ...Option) (*Resizer, error) {
 	return r, nil
 }
 
-type RunStat struct {
+type ResizedStat struct {
 	ResizedImages uint
 }
 
-func (r *Resizer) Run(ctx context.Context) (*RunStat, error) {
-	imagesCh, err := scanInputDir(r.input)
+func (r *Resizer) Run(ctx context.Context) (*ResizedStat, error) {
+	imagesCh, err := r.scanInputDir()
 	if err != nil {
 		return nil, fmt.Errorf("scanning dir: %w", err)
 	}
@@ -61,7 +64,7 @@ func (r *Resizer) Run(ctx context.Context) (*RunStat, error) {
 	}
 
 	wg.Wait()
-	return &RunStat{ResizedImages: uint(r.resizedImages)}, nil
+	return &ResizedStat{ResizedImages: uint(r.resizedImages)}, nil
 }
 
 func (r *Resizer) RunResizeWorker(ctx context.Context, in <-chan Image) {
@@ -75,7 +78,7 @@ func (r *Resizer) RunResizeWorker(ctx context.Context, in <-chan Image) {
 			}
 			img.Resize(r.width, r.height)
 			if err := saveImage(filepath.Join(r.output, img.Filename()), img); err != nil {
-				fmt.Printf("saving resized image failed: %v\n", err)
+				r.log.Printf("ERROR: saving resized image: %v\n", err)
 				continue
 			}
 			atomic.AddUint32(&r.resizedImages, 1)
@@ -108,6 +111,34 @@ func (r *Resizer) ResizeImage(reader io.Reader, filename string) error {
 	return saveImage(filepath.Join(r.output, img.Filename()), img)
 }
 
+func (r *Resizer) scanInputDir() (<-chan Image, error) {
+	imagesCh := make(chan Image)
+
+	go func() {
+		defer close(imagesCh)
+
+		err := filepath.Walk(r.input, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				return nil
+			}
+			image, err := decodeImageFile(path, r.input+string(filepath.Separator))
+			if err != nil {
+				r.log.Printf("WARNING: skipping file: %q: %v\n", path, err)
+				return nil
+			}
+			imagesCh <- image
+			return nil
+		})
+		if err != nil {
+			r.log.Printf("ERROR: scanning directory: %v\n", err)
+		}
+	}()
+	return imagesCh, nil
+}
+
 func saveImage(path string, img Image) error {
 	if err := createDirForFile(path, 0o755); err != nil {
 		return fmt.Errorf("creating directory for file %q: %w", path, err)
@@ -119,35 +150,6 @@ func saveImage(path string, img Image) error {
 	defer out.Close()
 
 	return img.Encode(out)
-}
-
-func scanInputDir(dir string) (<-chan Image, error) {
-	imagesCh := make(chan Image)
-
-	go func() {
-		defer close(imagesCh)
-
-		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				fmt.Printf("reading file: %v\n", err)
-				return nil
-			}
-			if info.IsDir() {
-				return nil
-			}
-			image, err := decodeImageFile(path, dir+string(filepath.Separator))
-			if err != nil {
-				fmt.Printf("skipping file: %q: %v\n", path, err)
-				return nil
-			}
-			imagesCh <- image
-			return nil
-		})
-		if err != nil {
-			fmt.Printf("walking directory %q: %v", dir, err)
-		}
-	}()
-	return imagesCh, nil
 }
 
 func createDirForFile(path string, dirPerm os.FileMode) error {

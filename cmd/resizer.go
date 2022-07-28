@@ -13,16 +13,6 @@ import (
 	"github.com/abramlab/resizer/resizer"
 )
 
-// TODO: add progress line
-// TODO: add tests
-// TODO: delete resize pkg
-// TODO: add logger
-// TODO: add docker
-// TODO: add deb pkg
-// TODO: rename project (image resizer)
-// TODO: update readme
-// TODO: add more formats
-
 var (
 	input  = flag.String("input", "images", "Path to folder where images you need to resize.")
 	output = flag.String("output", "resized_images", "Path to output folder with resized images.")
@@ -56,21 +46,13 @@ func main() {
 		log.Fatalf("create new resizer failed: %v", err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
-
-	go func() {
-		ch := make(chan os.Signal, 1)
-		signal.Notify(ch, os.Interrupt)
-		<-ch
-		cancel()
-		fmt.Println("Stopping signal caught, shutting down...")
-	}()
 
 	result, err := r.Run(ctx)
 	if err != nil {
 		log.Fatalf("run resizer failed: %v", err)
 	}
 
-	fmt.Printf("Resized images: %v\n", result.ResizedImages)
+	fmt.Printf("RESIZED IMAGES: %v\n", result.ResizedImages)
 }

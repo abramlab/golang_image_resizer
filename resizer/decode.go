@@ -14,16 +14,6 @@ var imageFormatToConstructor = map[string]func(i *Img) Image{
 	"gif":  func(i *Img) Image { return &GIFImage{Img: i} },
 }
 
-func decodeImageFile(path string, rootPath string) (Image, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("open file %s: %s", path, err)
-	}
-	defer file.Close()
-
-	return DecodeImage(file, strings.TrimPrefix(path, rootPath))
-}
-
 func DecodeImage(reader io.Reader, filename string) (Image, error) {
 	decodedImage, format, err := image.Decode(reader)
 	if err != nil {
@@ -37,4 +27,14 @@ func DecodeImage(reader io.Reader, filename string) (Image, error) {
 		Image:    decodedImage,
 		filename: filename,
 	}), nil
+}
+
+func decodeImageFile(path string, rootPath string) (Image, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("open file %s: %s", path, err)
+	}
+	defer file.Close()
+
+	return DecodeImage(file, strings.TrimPrefix(path, rootPath))
 }
