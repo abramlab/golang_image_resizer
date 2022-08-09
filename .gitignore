@@ -1,5 +1,5 @@
 .idea
 .DS_Store
 bin/
-resized_images/**/*.jpg
-images/**/*.jpg
+images/
+resized-images/

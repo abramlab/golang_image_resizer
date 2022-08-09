@@ -54,7 +54,6 @@ func (r *Resizer) Run(ctx context.Context) (*ResizedStat, error) {
 	}
 
 	var wg sync.WaitGroup
-
 	for i := 0; i < r.workersNum; i++ {
 		wg.Add(1)
 		go func() {
