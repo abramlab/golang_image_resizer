@@ -15,12 +15,12 @@ import (
 
 var (
 	input  = flag.String("input", "images", "Path to folder where images you need to resize.")
-	output = flag.String("output", "resized_images", "Path to output folder with resized images.")
+	output = flag.String("output", "resized-images", "Path to output folder with resized images.")
 
 	width  = flag.Uint("width", 1024, "Width of resized images in px.")
 	height = flag.Uint("height", 0, "Height of resized images in px.")
 
-	resFolder = flag.Bool("resolution-folder", false,
+	resFolder = flag.Bool("resolution_folder", false,
 		"All resized images will be saved in separate folder. "+
 			"For example if width = 1024 and height = 0, resized images will be saved in 'output/1024x0' folder.")
 	workersNum = flag.Int("workers_num", runtime.NumCPU(),

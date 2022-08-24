@@ -3,8 +3,6 @@
 
 SHELL = /bin/bash
 
-OS ?= linux
-GO   ?= go
 TOOLS_BIN_DIR ?= tools/bin
 CACHE_DIR ?= cache
 
@@ -23,11 +21,11 @@ clean-cache:
 ##### BUILD AND RUN TARGETS #####
 
 GO_BUILD_FLAGS ?= -trimpath
-GO_BIN_RESIZER = bin/resizer
+GO_BIN_RESIZER = bin/image-resizer
 
 .PHONY: build
 build:
-	$(GO) build $(GO_BUILD_FLAGS) -o "$(GO_BIN_RESIZER)" "./cmd/$*"
+	go build $(GO_BUILD_FLAGS) -o "$(GO_BIN_RESIZER)" "."
 
 .PHONY: run
 run: build
@@ -39,7 +37,7 @@ export TOOLS_PATH = $(CURDIR)/$(TOOLS_BIN_DIR)
 
 TOOLS_MODFILE = tools/go.mod
 define install-go-tool =
-	$(GO) build \
+	go build \
 		-o $(TOOLS_BIN_DIR) \
 		-ldflags "-s -w" \
 		-modfile $(TOOLS_MODFILE)
@@ -72,7 +70,26 @@ lint: $(GO_LINT_TOOL)
 format-go: $(GO_FORMAT_TOOL)
 	$(format-go-code) .
 
-.PHONY: generate-go
-generate-go: $(GO_FORMAT_TOOL) $(COMMON_TOOLS)
-	$(GO) generate ./...
-	$(format-go-code) .
+IMAGE_RESIZER_IMAGE_TAG = 0.1.0
+IMAGE_RESIZER_IMAGE_NAME = abramlab/image-resizer
+export IMAGE_RESIZER_IMAGE ?= $(IMAGE_RESIZER_IMAGE_NAME):$(IMAGE_RESIZER_IMAGE_TAG)
+
+.PHONY: build-image
+build-image:
+	docker build -t $(IMAGE_RESIZER_IMAGE) .
+
+.PHONY: push-image
+push-image:
+	docker push $(IMAGE_RESIZER_IMAGE)
+
+CONTAINER_DIR = /app
+
+.PHONY: run-image
+run-image:
+	docker run \
+    	-it \
+    	--rm \
+    	-w $(CONTAINER_DIR) \
+    	--mount type=bind,source=$(CURDIR)/images,target=$(CONTAINER_DIR)/images \
+    	--mount type=bind,source=$(CURDIR)/resized-images,target=$(CONTAINER_DIR)/resized-images \
+		$(IMAGE_RESIZER_IMAGE)

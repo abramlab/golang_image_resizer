@@ -1,43 +1,46 @@
-## Golang image resizer
-This script is used for resizing images( jpg | png | gif ).
+## Image resizer
 
-## Installation
-First, if don`t have Go, install it - [instruction](https://golang.org/doc/install#install)
-	
-	git clone https://github.com/abram213/golang_image_resizer.git
-	cd golang_image_resizer/
+Easily and quickly resize local images( `jpg` | `png` | `gif` ).
 
-## Running	
-1. Drop images that need to resize into `images` folder
-2. Run script `go run resize.go -width=500 -height=500`
-3. By default, all resized images saves in `resized` folder
+## Running
 
-## Examples
+Drag the images you want to resize to the `images`(default) folder.
+All resized images are saved in the `resized-images`(default) folder.
 
-1.`go run resize.go -width=500 -height=500 -postfix`
+#### Binary
+```
+image-resizer -width=500 -height=500
+```
 
-| Before | After |
-| --- | --- |
-| nature1.jpg 800x825 | nature1_500x500.jpg 500x500 |
-|![Nature1 image 800x825](test_images/in/nature1.jpg?raw=true)|![Nature1 image 500x500](test_images/out/nature1_500x500.jpg?raw=true)|
+#### Docker image
 
-2.`go run resize.go -width=600 -height=0`
+```
+docker run \
+    -it \
+    --rm \
+    -w /app \
+    --mount type=bind,source=$(pwd)/images,target=/app/images \
+    --mount type=bind,source=$(pwd)/resized-images,target=/app/resized-images \
+    abramlab/image-resizer:0.1.0
+```
 
-| Before | After |
-| --- | --- |
-| nature2.jpg 1366x550 | nature2.jpg 600x242 |
-|![Nature2 image 1366x550](test_images/in/nature2.jpg?raw=true)|![Nature2 image 600x242](test_images/out/nature2.jpg?raw=true)|
+## Build
 
-## Supported flags
-    go run resize.go -help
-    
-The following flags are supported:
+First, if you don`t have Go, [install](https://golang.org/doc/install#install) it.
 
-| Flag          | Default                | Description |
-|---------------|------------------------| --- |
-| `width`       | 240 px                 | Width of resized images in px |
-| `height`      | 240 px                 | Height of resized images in px |
-| `in_path`     | images                 | Path to folder where images you need to resize |
-| `out_path`    | resized                | Path to folder with resized images |
-| `postfix`     | false                  | Postfix of width and height in resized image. Example: img_name_300x300 |
-| `workers_num` | Number of logical CPUs | Number of resized workers |
+1. `git clone https://github.com/abramlab/image-resizer.git`
+2. `cd image-resizer`
+3. `make build` or `go build -o bin/image-resizer .`
+
+## Supported options
+
+```
+  --input=                      Path to folder where images you need to resize. (default: ./images)
+  --output=                     Path to output folder with resized images. (default: ./resized_images)
+  --width=                      Width of resized images in px. (default: 1024)
+  --height=                     Height of resized images in px. (default: 0)
+  --resolution_folder           All resized images will be saved in separate folder.
+		                For example if width = 1024 and height = 0, resized images will be saved 
+		                in 'output/1024x0' folder. (default: false)
+  --workers_num=                Number of resized workers. (default: number of logical CPUs)
+```
